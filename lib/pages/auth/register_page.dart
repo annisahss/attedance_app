@@ -1,8 +1,8 @@
+import 'package:attedance_app/pages/home/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/api_service.dart';
-import './home_page.dart';
+import 'package:attedance_app/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,6 +15,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -29,33 +30,40 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     setState(() => _isLoading = true);
-    final api = ApiService();
-    final result = await api.register(name, email, password);
-    setState(() => _isLoading = false);
 
-    if (result['success']) {
-      final token = result['data']['token'];
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', token);
+    try {
+      final api = AuthService();
+      final result = await api.register(name, email, password);
 
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    } else {
-      final errors = result['errors'];
-      String errorMessages = '';
+      setState(() => _isLoading = false);
 
-      if (errors != null) {
-        errors.forEach((key, value) {
-          errorMessages += "$key: ${value.join(', ')}\n";
-        });
+      if (result != null && result.errors == null) {
+        if (result.message != null && result.message!.isNotEmpty) {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+          );
+        } else {
+          _showDialog(
+            "Registration Failed",
+            "Registration failed. Please check your network or try again.",
+          );
+        }
       } else {
-        errorMessages = result['message'];
+        String errorMessages = '';
+        if (result.errors != null && result.errors!.email != null) {
+          errorMessages = result.errors!.email!.join('\n');
+        } else if (result.message != null && result.message!.isNotEmpty) {
+          errorMessages = result.message!;
+        } else {
+          errorMessages = 'Registration failed. Please try again.';
+        }
+        _showDialog("Registration Failed", errorMessages);
       }
-
-      _showDialog("Registration Failed", errorMessages);
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showDialog("Error", "An error occurred: $e");
     }
   }
 
@@ -86,8 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             children: [
               const SizedBox(height: 30),
-              Image.asset('assets/images/logo.png', height: 80),
-
+              Image.asset('assets/images/logo.jpg', height: 150),
               const SizedBox(height: 30),
               RichText(
                 textAlign: TextAlign.center,
@@ -104,7 +111,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       style: TextStyle(fontWeight: FontWeight.w400),
                     ),
                     TextSpan(
-                      text: "HR Attendee",
+                      text: "Attendee App",
                       style: TextStyle(color: Colors.blue),
                     ),
                   ],
@@ -116,8 +123,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 25),
-
-              // Name
               TextField(
                 controller: nameController,
                 decoration: InputDecoration(
@@ -127,10 +132,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 15),
-
-              // Email
               TextField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -140,10 +142,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 15),
-
-              // Password
               TextField(
                 controller: passwordController,
                 obscureText: _obscurePassword,
@@ -165,10 +164,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 25),
-
-              // Register Button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -189,15 +185,12 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                 ),
               ),
-
               const SizedBox(height: 20),
               Text(
                 "Or continue with social account",
                 style: GoogleFonts.poppins(color: Colors.grey),
               ),
               const SizedBox(height: 10),
-
-              // Google Button
               Container(
                 height: 50,
                 decoration: BoxDecoration(
@@ -213,7 +206,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -224,7 +216,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pop(context); // Back to login
+                      Navigator.pop(context);
                     },
                     child: Text(
                       "Login",

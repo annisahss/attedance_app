@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'package:attedance_app/pages/home/home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,39 +20,52 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  void handleLogin() async {
+  Future<void> handleLogin() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      _showDialog("Error", "Please fill in all fields.");
+      _showToast("Please fill in all fields.");
       return;
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(
-      const Duration(seconds: 2),
-    ); // Replace with your API call
+
+    final response = await http.post(
+      Uri.parse("https://absen.quidi.id/api/login"),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"email": email, "password": password}),
+    );
+
     setState(() => _isLoading = false);
 
-    // Handle login logic here (e.g., navigate to HomePage if success)
-    _showDialog("Login", "Login functionality coming soon!");
+    final responseData = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && responseData['data'] != null) {
+      final token = responseData['data']['token'];
+
+      // Save token using shared_preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } else {
+      _showToast(responseData['message'] ?? "Unknown error");
+    }
   }
 
-  void _showDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: Text(title),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black87,
+      textColor: Colors.white,
+      fontSize: 14.0,
     );
   }
 
@@ -61,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             children: [
               const SizedBox(height: 30),
-              Image.asset('assets/images/logo.png', height: 80),
+              Image.asset('assets/images/logo.jpg', height: 150),
 
               const SizedBox(height: 30),
               RichText(
@@ -73,13 +91,12 @@ class _LoginPageState extends State<LoginPage> {
                     fontWeight: FontWeight.w600,
                   ),
                   children: const [
-                    TextSpan(text: "Login to your Account\n"),
                     TextSpan(
-                      text: "Welcome back to ",
+                      text: "Welcome back to\n",
                       style: TextStyle(fontWeight: FontWeight.w400),
                     ),
                     TextSpan(
-                      text: "HR Attendee",
+                      text: "Attendee App",
                       style: TextStyle(color: Colors.blue),
                     ),
                   ],
@@ -87,7 +104,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Please sign in to continue",
+                "Hello there, login to continue",
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 25),
@@ -136,7 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Color(0xff3085FE),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

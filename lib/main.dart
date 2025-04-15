@@ -1,4 +1,4 @@
-import 'package:attedance_app/pages/login_page.dart';
+import 'package:attedance_app/pages/auth/login_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {
