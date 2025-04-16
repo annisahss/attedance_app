@@ -66,7 +66,7 @@ class Data {
 
   Map<String, dynamic> toJson() => {
     "user_id": userId,
-    "check_in": checkIn?.toIso8601String(),
+    "check_in": checkIn?.toIso8601String(),         
     "check_in_location": checkInLocation,
     "check_in_lat": checkInLat,
     "check_in_lng": checkInLng,

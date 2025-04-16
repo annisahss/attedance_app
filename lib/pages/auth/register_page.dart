@@ -1,7 +1,6 @@
 import 'package:attedance_app/pages/home/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:attedance_app/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {

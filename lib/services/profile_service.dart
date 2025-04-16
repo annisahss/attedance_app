@@ -1,18 +1,19 @@
 import 'dart:convert';
 import 'package:attedance_app/models/edit_profile_model.dart';
 import 'package:attedance_app/models/profile_model.dart';
+import 'package:attedance_app/services/endpoint.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileService {
-  static const String baseUrl = 'https://your-api-url.com/api';
+  static const String baseUrl = '${Endpoint.baseUrl}';
 
   static Future<ProfileResponse?> fetchProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
     final response = await http.get(
-      Uri.parse('$baseUrl/profile'),
+      Uri.parse('$baseUrl${Endpoint.profile}'),
       headers: {'Authorization': 'Bearer $token'},
     );
 

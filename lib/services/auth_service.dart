@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:attedance_app/models/login_model.dart';
 import 'package:attedance_app/models/register_model.dart';
+import 'package:attedance_app/services/endpoint.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../config/api_config.dart';
 
 class AuthService {
   Future<LoginResponse> login(String email, String password) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/login');
+    final url = Uri.parse('${Endpoint.baseUrl}${Endpoint.login}');
     final response = await http.post(
       url,
       body: {'email': email, 'password': password},
@@ -28,7 +28,7 @@ class AuthService {
     String email,
     String password,
   ) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/register');
+    final url = Uri.parse('${Endpoint.baseUrl}${Endpoint.register}');
     final response = await http.post(
       url,
       body: {'name': name, 'email': email, 'password': password},

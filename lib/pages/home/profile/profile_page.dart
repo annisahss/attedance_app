@@ -1,4 +1,4 @@
-import 'package:attedance_app/pages/report_page.dart';
+import 'package:attedance_app/pages/history_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:attedance_app/pages/home/profile/edit_profile.dart';
@@ -110,7 +110,7 @@ class _ProfilePageState extends State<ProfilePage> {
             case 1:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => const ReportPage()),
+                MaterialPageRoute(builder: (_) => const HistoryPage()),
               );
               break;
             case 2:

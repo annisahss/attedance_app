@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:attedance_app/pages/home/home_page.dart';
+import 'package:attedance_app/services/endpoint.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,7 +33,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     final response = await http.post(
-      Uri.parse("https://absen.quidi.id/api/login"),
+      Uri.parse("${Endpoint.baseUrl}${Endpoint.login}"),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({"email": email, "password": password}),
     );
