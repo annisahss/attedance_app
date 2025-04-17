@@ -8,20 +8,20 @@ String checkOutResponseToJson(CheckOutResponse data) =>
 
 class CheckOutResponse {
   final String? message;
-  final Data? data;
+  final CheckOutData? data;
 
   CheckOutResponse({this.message, this.data});
 
   factory CheckOutResponse.fromJson(Map<String, dynamic> json) =>
       CheckOutResponse(
         message: json["message"],
-        data: json["data"] == null ? null : Data.fromJson(json["data"]),
+        data: json["data"] == null ? null : CheckOutData.fromJson(json["data"]),
       );
 
   Map<String, dynamic> toJson() => {"message": message, "data": data?.toJson()};
 }
 
-class Data {
+class CheckOutData {
   final int? id;
   final int? userId;
   final DateTime? checkIn;
@@ -39,7 +39,7 @@ class Data {
   final double? checkOutLat;
   final double? checkOutLng;
 
-  Data({
+  CheckOutData({
     this.id,
     this.userId,
     this.checkIn,
@@ -58,7 +58,7 @@ class Data {
     this.checkOutLng,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) => Data(
+  factory CheckOutData.fromJson(Map<String, dynamic> json) => CheckOutData(
     id: json["id"],
     userId: json["user_id"],
     checkIn: json["check_in"] == null ? null : DateTime.parse(json["check_in"]),

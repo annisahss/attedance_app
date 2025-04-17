@@ -1,7 +1,3 @@
-// To parse this JSON data, do
-//
-//     final editProfileResponse = editProfileResponseFromJson(jsonString);
-
 import 'dart:convert';
 
 EditProfileResponse editProfileResponseFromJson(String str) =>
@@ -12,20 +8,21 @@ String editProfileResponseToJson(EditProfileResponse data) =>
 
 class EditProfileResponse {
   final String? message;
-  final Data? data;
+  final EditProfileData? data;
 
   EditProfileResponse({this.message, this.data});
 
-  factory EditProfileResponse.fromJson(Map<String, dynamic> json) =>
-      EditProfileResponse(
-        message: json["message"],
-        data: json["data"] == null ? null : Data.fromJson(json["data"]),
-      );
+  factory EditProfileResponse.fromJson(
+    Map<String, dynamic> json,
+  ) => EditProfileResponse(
+    message: json["message"],
+    data: json["data"] == null ? null : EditProfileData.fromJson(json["data"]),
+  );
 
   Map<String, dynamic> toJson() => {"message": message, "data": data?.toJson()};
 }
 
-class Data {
+class EditProfileData {
   final int? id;
   final String? name;
   final String? email;
@@ -33,7 +30,7 @@ class Data {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  Data({
+  EditProfileData({
     this.id,
     this.name,
     this.email,
@@ -42,7 +39,9 @@ class Data {
     this.updatedAt,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) => Data(
+  factory EditProfileData.fromJson(
+    Map<String, dynamic> json,
+  ) => EditProfileData(
     id: json["id"],
     name: json["name"],
     email: json["email"],

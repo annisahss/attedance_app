@@ -1,7 +1,9 @@
-import 'package:attedance_app/pages/home/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:attedance_app/services/auth_service.dart';
+import 'package:attedance_app/utils/validator.dart';
+import 'package:attedance_app/theme/app_colors.dart';
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -11,10 +13,9 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -23,130 +24,81 @@ class _RegisterPageState extends State<RegisterPage> {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      _showDialog("Error", "Please fill all fields.");
+    if (!Validator.name(name) ||
+        !Validator.email(email) ||
+        !Validator.password(password)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please complete all fields correctly.')),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
+    final api = AuthService();
+    final result = await api.register(name, email, password);
+    setState(() => _isLoading = false);
 
-    try {
-      final api = AuthService();
-      final result = await api.register(name, email, password);
-
-      setState(() => _isLoading = false);
-
-      if (result != null && result.errors == null) {
-        if (result.message != null && result.message!.isNotEmpty) {
-          if (!mounted) return;
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomePage()),
-          );
-        } else {
-          _showDialog(
-            "Registration Failed",
-            "Registration failed. Please check your network or try again.",
-          );
-        }
-      } else {
-        String errorMessages = '';
-        if (result.errors != null && result.errors!.email != null) {
-          errorMessages = result.errors!.email!.join('\n');
-        } else if (result.message != null && result.message!.isNotEmpty) {
-          errorMessages = result.message!;
-        } else {
-          errorMessages = 'Registration failed. Please try again.';
-        }
-        _showDialog("Registration Failed", errorMessages);
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _showDialog("Error", "An error occurred: $e");
+    if (result.errors == null && result.message != null) {
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message ?? 'Registration failed')),
+      );
     }
-  }
-
-  void _showDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: Text(title),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 30),
-              Image.asset('assets/images/logo.jpg', height: 150),
-              const SizedBox(height: 30),
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  children: const [
-                    TextSpan(text: "Register Account\n"),
-                    TextSpan(
-                      text: "to ",
-                      style: TextStyle(fontWeight: FontWeight.w400),
-                    ),
-                    TextSpan(
-                      text: "Attendee App",
-                      style: TextStyle(color: Colors.blue),
-                    ),
-                  ],
+              const SizedBox(height: 50),
+              Text(
+                "Create Account",
+                style: GoogleFonts.poppins(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
-                "Hello there, register to continue",
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
+                "Register to get started",
+                style: GoogleFonts.poppins(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: 25),
+              const SizedBox(height: 30),
               TextField(
                 controller: nameController,
                 decoration: InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
               TextField(
                 controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Email Address',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
               TextField(
                 controller: passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: 'Password',
+                  border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -158,20 +110,17 @@ class _RegisterPageState extends State<RegisterPage> {
                           () => _obscurePassword = !_obscurePassword,
                         ),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
                 ),
               ),
-              const SizedBox(height: 25),
+              const SizedBox(height: 30),
               SizedBox(
                 width: double.infinity,
-                height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   onPressed: _isLoading ? null : handleRegister,
@@ -185,43 +134,24 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              Text(
-                "Or continue with social account",
-                style: GoogleFonts.poppins(color: Colors.grey),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/images/google.png', height: 24),
-                    const SizedBox(width: 10),
-                    Text("Google", style: GoogleFonts.poppins(fontSize: 16)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     "Already have an account? ",
-                    style: GoogleFonts.poppins(),
+                    style: GoogleFonts.poppins(color: AppColors.textSecondary),
                   ),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
+                    onTap:
+                        () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginPage()),
+                        ),
                     child: Text(
                       "Login",
                       style: GoogleFonts.poppins(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

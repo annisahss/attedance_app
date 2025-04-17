@@ -5,4 +5,5 @@ class Endpoint {
   static const String checkIn = '/api/absen/check-in';
   static const String checkOut = '/api/absen/check-out';
   static const String profile = '/api/profile';
+  static const String absenHistory = '/api/absen/history';
 }

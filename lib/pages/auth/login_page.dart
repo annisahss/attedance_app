@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'package:attedance_app/pages/home/home_page.dart';
-import 'package:attedance_app/services/endpoint.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:attedance_app/services/auth_service.dart';
+import 'package:attedance_app/utils/validator.dart';
+import 'package:attedance_app/theme/app_colors.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -16,119 +14,80 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  Future<void> handleLogin() async {
+  void handleLogin() async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      _showToast("Please fill in all fields.");
+    if (!Validator.email(email) || !Validator.password(password)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please complete all fields correctly.')),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
-
-    final response = await http.post(
-      Uri.parse("${Endpoint.baseUrl}${Endpoint.login}"),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({"email": email, "password": password}),
-    );
-
+    final api = AuthService();
+    final result = await api.login(email, password);
     setState(() => _isLoading = false);
 
-    final responseData = jsonDecode(response.body);
-
-    if (response.statusCode == 200 && responseData['data'] != null) {
-      final token = responseData['data']['token'];
-
-      // Save token using shared_preferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', token);
-
+    if (result.data != null) {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } else {
-      _showToast(responseData['message'] ?? "Unknown error");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message ?? 'Login failed')));
     }
-  }
-
-  void _showToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black87,
-      textColor: Colors.white,
-      fontSize: 14.0,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 30),
-              Image.asset('assets/images/logo.jpg', height: 150),
-
-              const SizedBox(height: 30),
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  children: const [
-                    TextSpan(
-                      text: "Welcome back to\n",
-                      style: TextStyle(fontWeight: FontWeight.w400),
-                    ),
-                    TextSpan(
-                      text: "Attendee App",
-                      style: TextStyle(color: Colors.blue),
-                    ),
-                  ],
+              const SizedBox(height: 50),
+              Text(
+                "Welcome Back",
+                style: GoogleFonts.poppins(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
-                "Hello there, login to continue",
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
+                "Login to your account",
+                style: GoogleFonts.poppins(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: 25),
-
-              // Email
+              const SizedBox(height: 30),
               TextField(
                 controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Email Address',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  border: OutlineInputBorder(),
                 ),
               ),
-
-              const SizedBox(height: 15),
-
-              // Password
+              const SizedBox(height: 20),
               TextField(
                 controller: passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: 'Password',
+                  border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -140,23 +99,17 @@ class _LoginPageState extends State<LoginPage> {
                           () => _obscurePassword = !_obscurePassword,
                         ),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
                 ),
               ),
-
-              const SizedBox(height: 25),
-
-              // Login Button
+              const SizedBox(height: 30),
               SizedBox(
                 width: double.infinity,
-                height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xff3085FE),
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   onPressed: _isLoading ? null : handleLogin,
@@ -169,50 +122,27 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                 ),
               ),
-
               const SizedBox(height: 20),
-              Text(
-                "Or continue with social account",
-                style: GoogleFonts.poppins(color: Colors.grey),
-              ),
-              const SizedBox(height: 10),
-
-              // Google Button
-              Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/images/google.png', height: 24),
-                    const SizedBox(width: 10),
-                    Text("Google", style: GoogleFonts.poppins(fontSize: 16)),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Register Redirect
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Don't have an account? ", style: GoogleFonts.poppins()),
+                  Text(
+                    "Don't have an account? ",
+                    style: GoogleFonts.poppins(color: AppColors.textSecondary),
+                  ),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const RegisterPage()),
-                      );
-                    },
+                    onTap:
+                        () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterPage(),
+                          ),
+                        ),
                     child: Text(
                       "Register",
                       style: GoogleFonts.poppins(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

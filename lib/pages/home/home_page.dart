@@ -1,11 +1,18 @@
-import 'dart:async';
-import 'package:attedance_app/pages/check_in_page.dart';
-import 'package:attedance_app/pages/check_out_page.dart';
-import 'package:attedance_app/pages/home/profile/profile_page.dart';
-import 'package:attedance_app/pages/history_page.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:attedance_app/pages/home/profile/profile_page.dart';
+import 'package:attedance_app/pages/home/widgets/check_card.dart';
+import 'package:attedance_app/pages/home/widgets/custom_map.dart';
+import 'package:attedance_app/services/profile_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:attedance_app/theme/app_colors.dart';
+import 'package:attedance_app/pages/history_page.dart';
+import 'package:attedance_app/pages/check_in_page.dart';
+import 'package:attedance_app/pages/check_out_page.dart';
+import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,222 +23,278 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String _userName = 'User';
-  String _userJob = 'Product Designer';
+  String _userJob = 'Product Manager';
   String _currentTime = '';
-  Timer? _timer;
-  int _currentIndex = 0;
+  String _currentDay = '';
+  String _fullAddress = 'Loading...';
+  Position? _currentPosition;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadUserProfile();
+    _getCurrentPosition();
     _startClock();
   }
 
-  void _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadUserProfile() async {
+    final profile = await ProfileService.fetchProfile();
+    if (profile != null && profile.data != null) {
+      setState(() {
+        _userName = profile.data!.name ?? 'User';
+      });
+    }
+  }
+
+  Future<void> _getCurrentPosition() async {
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    setState(() => _currentPosition = position);
+
+    final placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+    final placemark = placemarks.first;
+
     setState(() {
-      _userName = prefs.getString('userName') ?? 'User';
+      _fullAddress =
+          "${placemark.name}, ${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}, ${placemark.country}";
     });
   }
 
   void _startClock() {
-    _currentTime = DateFormat('hh:mm:ss a').format(DateTime.now());
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() {
-        _currentTime = DateFormat('hh:mm:ss a').format(DateTime.now());
-      });
+    DateTime now = DateTime.now();
+    _currentTime = DateFormat('hh:mm:ss a').format(now);
+    _currentDay = DateFormat('EEEE, dd MMMM yyyy').format(now);
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) _startClock();
     });
+    setState(() {});
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _onNavTap(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-    switch (index) {
-      case 0:
-        break;
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HistoryPage()),
-        );
-        break;
-      case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ProfilePage()),
-        );
-        break;
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const HistoryPage()),
+      );
+    } else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfilePage()),
+      );
     }
   }
 
-  Widget _buildActionBox(String title, IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.blue[100],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 30, color: Colors.blue),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-          ],
-        ),
-      ),
+  Future<void> _saveFavoriteLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> favorites = prefs.getStringList('favorite_locations') ?? [];
+
+    final newFavorite = jsonEncode({
+      'name': _userName,
+      'address': _fullAddress,
+    });
+
+    favorites.add(newFavorite);
+    await prefs.setStringList('favorite_locations', favorites);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Location added to favorites')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[50],
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-              decoration: BoxDecoration(
-                color: Colors.blue[800],
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(20),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.border, blurRadius: 5),
+                  ],
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 25,
-                        backgroundImage: AssetImage(
-                          'assets/images/avatar.jpeg',
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 30,
+                      backgroundImage: AssetImage('assets/images/avatar.jpeg'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             _userName,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           Text(
                             _userJob,
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            style: GoogleFonts.poppins(
                               fontSize: 14,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
                       ),
-                      const Spacer(),
-                      const Icon(Icons.notifications, color: Colors.white),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Hello 👋 $_userName',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  const Text(
-                    'Keep up the Good Work!',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.all(20),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "$_currentTime",
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                    IconButton(
+                      icon: const Icon(
+                        Icons.star_border,
+                        color: AppColors.accent,
+                      ),
+                      onPressed: _saveFavoriteLocation,
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  const Text(
-                    "Your Working Hours 09:00 AM - 05:00 PM",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 20),
-                  GridView.count(
-                    shrinkWrap: true,
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.8,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _buildActionBox("Clock In", Icons.login, () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CheckInPage(),
-                          ),
-                        );
-                      }),
-                      _buildActionBox("Clock Out", Icons.logout, () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CheckOutPage(),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 20),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.accent],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello 👋 $_userName',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Hope you have a great day!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.border, blurRadius: 5),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      _currentTime,
+                      style: GoogleFonts.poppins(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      _currentDay,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CheckCard(
+                            title: 'Clock In',
+                            time: '',
+                            note: 'Start Work',
+                            borderColor: AppColors.success,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CheckInPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: CheckCard(
+                            title: 'Clock Out',
+                            time: '',
+                            note: 'End Work',
+                            borderColor: AppColors.warning,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CheckOutPage(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              _currentPosition == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : CustomMap(
+                    position: _currentPosition!,
+                    address: _fullAddress,
+                    onMapCreated: (controller) {},
+                  ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onNavTap,
-        selectedItemColor: Colors.blue,
+        currentIndex: _selectedIndex,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'History',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

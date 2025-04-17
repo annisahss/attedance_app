@@ -8,20 +8,20 @@ String checkInResponseToJson(CheckInResponse data) =>
 
 class CheckInResponse {
   final String? message;
-  final Data? data;
+  final CheckInData? data;
 
   CheckInResponse({this.message, this.data});
 
   factory CheckInResponse.fromJson(Map<String, dynamic> json) =>
       CheckInResponse(
         message: json["message"],
-        data: json["data"] == null ? null : Data.fromJson(json["data"]),
+        data: json["data"] == null ? null : CheckInData.fromJson(json["data"]),
       );
 
   Map<String, dynamic> toJson() => {"message": message, "data": data?.toJson()};
 }
 
-class Data {
+class CheckInData {
   final int? userId;
   final DateTime? checkIn;
   final String? checkInLocation;
@@ -34,7 +34,7 @@ class Data {
   final DateTime? createdAt;
   final int? id;
 
-  Data({
+  CheckInData({
     this.userId,
     this.checkIn,
     this.checkInLocation,
@@ -48,7 +48,7 @@ class Data {
     this.id,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) => Data(
+  factory CheckInData.fromJson(Map<String, dynamic> json) => CheckInData(
     userId: json["user_id"],
     checkIn: json["check_in"] == null ? null : DateTime.parse(json["check_in"]),
     checkInLocation: json["check_in_location"],
@@ -66,7 +66,7 @@ class Data {
 
   Map<String, dynamic> toJson() => {
     "user_id": userId,
-    "check_in": checkIn?.toIso8601String(),         
+    "check_in": checkIn?.toIso8601String(),
     "check_in_location": checkInLocation,
     "check_in_lat": checkInLat,
     "check_in_lng": checkInLng,

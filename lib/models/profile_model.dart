@@ -9,20 +9,20 @@ String profileResponseToJson(ProfileResponse data) =>
 
 class ProfileResponse {
   final String? message;
-  final Data? data;
+  final ProfileData? data;
 
   ProfileResponse({this.message, this.data});
 
   factory ProfileResponse.fromJson(Map<String, dynamic> json) =>
       ProfileResponse(
         message: json["message"],
-        data: json["data"] == null ? null : Data.fromJson(json["data"]),
+        data: json["data"] == null ? null : ProfileData.fromJson(json["data"]),
       );
 
   Map<String, dynamic> toJson() => {"message": message, "data": data?.toJson()};
 }
 
-class Data {
+class ProfileData {
   final int? id;
   final String? name;
   final String? email;
@@ -30,7 +30,7 @@ class Data {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  Data({
+  ProfileData({
     this.id,
     this.name,
     this.email,
@@ -39,7 +39,7 @@ class Data {
     this.updatedAt,
   });
 
-  factory Data.fromJson(Map<String, dynamic> json) => Data(
+  factory ProfileData.fromJson(Map<String, dynamic> json) => ProfileData(
     id: json["id"],
     name: json["name"],
     email: json["email"],

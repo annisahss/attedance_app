@@ -1,10 +1,11 @@
-import 'package:attedance_app/services/check_in_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:attedance_app/services/check_in_service.dart';
+import 'package:attedance_app/theme/app_colors.dart';
 
 class CheckInPage extends StatefulWidget {
   const CheckInPage({super.key});
@@ -46,9 +47,8 @@ class _CheckInPageState extends State<CheckInPage> {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       _showErrorDialog(
-        'Layanan Lokasi Nonaktif',
-        'Harap aktifkan layanan lokasi untuk menggunakan fitur ini.',
-        openSettings: true,
+        'Location Service Disabled',
+        'Please enable location service.',
       );
       return;
     }
@@ -58,8 +58,8 @@ class _CheckInPageState extends State<CheckInPage> {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         _showErrorDialog(
-          'Izin Lokasi Ditolak',
-          'Izin lokasi diperlukan untuk menggunakan fitur ini.',
+          'Permission Denied',
+          'Location permission is required.',
         );
         return;
       }
@@ -67,9 +67,8 @@ class _CheckInPageState extends State<CheckInPage> {
 
     if (permission == LocationPermission.deniedForever) {
       _showErrorDialog(
-        'Izin Ditolak Selamanya',
-        'Harap aktifkan izin lokasi di pengaturan aplikasi.',
-        openAppSettings: true,
+        'Permission Permanently Denied',
+        'Please enable it from settings.',
       );
       return;
     }
@@ -90,7 +89,7 @@ class _CheckInPageState extends State<CheckInPage> {
 
       setState(() {
         _currentAddress =
-            "${placemark.street}, ${placemark.locality}, ${placemark.postalCode}, ${placemark.administrativeArea}, ${placemark.country}";
+            "${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}, ${placemark.country}";
       });
 
       _markers.clear();
@@ -99,7 +98,7 @@ class _CheckInPageState extends State<CheckInPage> {
           markerId: const MarkerId('userLocation'),
           position: LatLng(position.latitude, position.longitude),
           infoWindow: InfoWindow(
-            title: 'Lokasi Anda',
+            title: 'Your Location',
             snippet: _currentAddress,
           ),
         ),
@@ -108,58 +107,16 @@ class _CheckInPageState extends State<CheckInPage> {
       _mapController?.animateCamera(
         CameraUpdate.newLatLngZoom(
           LatLng(position.latitude, position.longitude),
-          15.0,
+          15,
         ),
       );
     } catch (e) {
-      _showErrorDialog(
-        'Kesalahan Lokasi',
-        'Gagal mendapatkan lokasi Anda. Error: $e',
-      );
+      _showErrorDialog('Location Error', e.toString());
     }
-  }
-
-  void _showErrorDialog(
-    String title,
-    String message, {
-    bool openSettings = false,
-    bool openAppSettings = false,
-  }) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(title),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-              if (openSettings)
-                TextButton(
-                  onPressed: () {
-                    Geolocator.openLocationSettings();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Pengaturan'),
-                ),
-              if (openAppSettings)
-                TextButton(
-                  onPressed: () {
-                    Geolocator.openAppSettings();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Pengaturan Aplikasi'),
-                ),
-            ],
-          ),
-    );
   }
 
   Future<void> _handleCheckIn() async {
     if (_isCheckingIn || _currentPosition == null) return;
-
     setState(() => _isCheckingIn = true);
 
     try {
@@ -167,6 +124,9 @@ class _CheckInPageState extends State<CheckInPage> {
         lat: _currentPosition!.latitude,
         lng: _currentPosition!.longitude,
         address: _currentAddress,
+        status: _selectedAttendanceType == 'Izin' ? 'izin' : 'masuk',
+        alasanIzin:
+            _reasonController.text.isNotEmpty ? _reasonController.text : null,
       );
 
       setState(() => _isCheckingIn = false);
@@ -181,8 +141,8 @@ class _CheckInPageState extends State<CheckInPage> {
           context: context,
           builder:
               (context) => AlertDialog(
-                title: const Text('Check-In Berhasil'),
-                content: Text('Waktu: $formattedTime'),
+                title: const Text('Check-In Successful'),
+                content: Text('Time: $formattedTime'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -193,29 +153,23 @@ class _CheckInPageState extends State<CheckInPage> {
         );
       } else {
         _showErrorDialog(
-          'Sudah Check-In',
-          response.message ?? 'Anda sudah check-in hari ini.',
+          'Already Checked-In',
+          response.message ?? 'Already checked-in today.',
         );
       }
     } catch (e) {
       setState(() => _isCheckingIn = false);
-      _showErrorDialog('Gagal Check-In', 'Error: $e');
+      _showErrorDialog('Check-In Failed', e.toString());
     }
   }
 
-  void _handleSavePermission() {
-    if (_reasonController.text.isEmpty) {
-      _showErrorDialog('Alasan Izin Kosong', 'Harap isi alasan izin Anda.');
-      return;
-    }
-
-    print('Alasan Izin: ${_reasonController.text}');
+  void _showErrorDialog(String title, String message) {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Izin Disimpan'),
-            content: const Text('Alasan izin Anda telah disimpan.'),
+            title: Text(title),
+            content: Text(message),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -224,25 +178,23 @@ class _CheckInPageState extends State<CheckInPage> {
             ],
           ),
     );
-    _reasonController.clear();
-    setState(() => _selectedAttendanceType = null);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           Column(
             children: [
               SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6,
+                height: MediaQuery.of(context).size.height * 0.5,
                 child:
                     _currentPosition != null
                         ? GoogleMap(
-                          onMapCreated: (controller) {
-                            _mapController = controller;
-                          },
+                          onMapCreated:
+                              (controller) => _mapController = controller,
                           initialCameraPosition: CameraPosition(
                             target: LatLng(
                               _currentPosition!.latitude,
@@ -258,92 +210,83 @@ class _CheckInPageState extends State<CheckInPage> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.white,
-                        ),
-                        padding: const EdgeInsets.all(10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: 35,
-                              backgroundImage: AssetImage(_userAvatar),
-                            ),
-                            const SizedBox(width: 15),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _userName,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 35,
+                            backgroundImage: AssetImage(_userAvatar),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _userName,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
                                   ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    _currentAddress,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  _currentAddress,
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 20),
                       DropdownButtonFormField<String>(
                         value: _selectedAttendanceType,
-                        onChanged: (String? newValue) {
-                          setState(() => _selectedAttendanceType = newValue);
-                        },
+                        onChanged:
+                            (String? newValue) => setState(
+                              () => _selectedAttendanceType = newValue,
+                            ),
                         items:
-                            ['Masuk', 'Izin'].map<DropdownMenuItem<String>>((
-                              String value,
-                            ) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
+                            ['Masuk', 'Izin']
+                                .map(
+                                  (value) => DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  ),
+                                )
+                                .toList(),
                         decoration: const InputDecoration(
-                          labelText: 'Jenis Kehadiran',
+                          labelText: 'Attendance Type',
                           border: OutlineInputBorder(),
                         ),
                       ),
-                      const SizedBox(height: 15),
-                      if (_selectedAttendanceType == 'Izin') ...[
+                      const SizedBox(height: 20),
+                      if (_selectedAttendanceType == 'Izin')
                         TextField(
                           controller: _reasonController,
                           decoration: const InputDecoration(
-                            labelText: 'Alasan Izin',
+                            labelText: 'Reason for Permission',
                             border: OutlineInputBorder(),
                           ),
                           maxLines: 3,
                         ),
-                        const SizedBox(height: 15),
-                        ElevatedButton(
-                          onPressed: _handleSavePermission,
-                          child: const Text('Simpan Izin'),
-                        ),
-                      ] else if (_selectedAttendanceType == 'Masuk') ...[
-                        GestureDetector(
+                      const SizedBox(height: 20),
+                      Center(
+                        child: GestureDetector(
                           onTap: _isCheckingIn ? null : _handleCheckIn,
                           child: Container(
                             width: 160,
                             height: 160,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _isCheckingIn ? Colors.grey : Colors.green,
+                              color:
+                                  _isCheckingIn
+                                      ? Colors.grey
+                                      : AppColors.success,
                             ),
                             child: Center(
                               child:
@@ -351,28 +294,28 @@ class _CheckInPageState extends State<CheckInPage> {
                                       ? const CircularProgressIndicator(
                                         color: Colors.white,
                                       )
-                                      : const Text(
-                                        'Clock In',
+                                      : Text(
+                                        _selectedAttendanceType == 'Izin'
+                                            ? 'Submit Izin'
+                                            : 'Check In',
                                         style: TextStyle(
-                                          fontSize: 24,
                                           color: Colors.white,
+                                          fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 15),
-                        Text(
-                          _checkInTime.isNotEmpty
-                              ? 'Checked in at $_checkInTime'
-                              : 'Click to Check-In',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                      ),
+                      const SizedBox(height: 15),
+                      if (_checkInTime.isNotEmpty)
+                        Center(
+                          child: Text(
+                            'Checked in at $_checkInTime',
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ),
@@ -382,15 +325,9 @@ class _CheckInPageState extends State<CheckInPage> {
           Positioned(
             top: 10,
             left: 10,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+              onPressed: () => Navigator.pop(context),
             ),
           ),
         ],

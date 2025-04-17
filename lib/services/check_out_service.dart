@@ -1,10 +1,11 @@
+import 'dart:convert';
 import 'package:attedance_app/models/check_out_model.dart';
 import 'package:attedance_app/services/endpoint.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CheckOutService {
-  final String baseUrl = '${Endpoint.baseUrl}';
+  final String baseUrl = Endpoint.baseUrl;
 
   Future<CheckOutResponse?> checkOut({
     required double lat,
@@ -15,11 +16,16 @@ class CheckOutService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
+    if (token == null) {
+      throw Exception('Token tidak ditemukan. Silakan login ulang.');
+    }
+
     final url = Uri.parse('$baseUrl${Endpoint.checkOut}');
     final headers = {
       'Authorization': 'Bearer $token',
       'Accept': 'application/json',
     };
+
     final body = {
       'check_out_lat': lat.toString(),
       'check_out_lng': lng.toString(),
@@ -32,9 +38,9 @@ class CheckOutService {
     if (response.statusCode == 200) {
       return checkOutResponseFromJson(response.body);
     } else {
-      return checkOutResponseFromJson(
-        response.body,
-      ); // untuk case "sudah checkout"
+      final responseData = jsonDecode(response.body);
+      print('❌ Gagal checkout: ${responseData['message']}');
+      return checkOutResponseFromJson(response.body);
     }
   }
 }

@@ -1,9 +1,11 @@
-import 'package:attedance_app/pages/history_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:attedance_app/pages/history_page.dart';
 import 'package:attedance_app/pages/home/profile/edit_profile.dart';
 import 'package:attedance_app/pages/home/home_page.dart';
 import 'package:attedance_app/services/profile_service.dart';
+import 'package:attedance_app/theme/app_colors.dart';
+import 'package:flutter/services.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -36,13 +38,15 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    Navigator.pushReplacementNamed(context, '/login');
+    SystemNavigator.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.primary,
         title: const Text('Profile'),
         centerTitle: true,
         leading: IconButton(
@@ -50,19 +54,32 @@ class _ProfilePageState extends State<ProfilePage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            const CircleAvatar(
+            CircleAvatar(
               radius: 50,
-              backgroundImage: AssetImage('assets/images/avatar.jpeg'),
+              backgroundImage: const AssetImage('assets/images/avatar.jpeg'),
+              backgroundColor: AppColors.card,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              email,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
             ),
             const SizedBox(height: 30),
-            buildInfoCard('Name : ', name),
-            buildInfoCard('Email : ', email),
-            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
@@ -71,33 +88,35 @@ class _ProfilePageState extends State<ProfilePage> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.black,
-                backgroundColor: Colors.white,
-                side: const BorderSide(color: Colors.black),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Edit Profile'),
+              child: const Text('Edit Profile', style: TextStyle(fontSize: 16)),
             ),
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _logout,
-              child: const Text(
-                'Log out',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
+            const SizedBox(height: 15),
+            ElevatedButton(
+              onPressed: _logout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              child: const Text('Log Out', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
-        selectedItemColor: Colors.blue,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
         onTap: (index) {
           setState(() => currentIndex = index);
           switch (index) {
@@ -121,23 +140,6 @@ class _ProfilePageState extends State<ProfilePage> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Report'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-    );
-  }
-
-  Widget buildInfoCard(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Flexible(child: Text(value, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );

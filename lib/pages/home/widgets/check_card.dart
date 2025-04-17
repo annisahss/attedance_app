@@ -19,32 +19,31 @@ class CheckCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(time, style: GoogleFonts.poppins(fontSize: 16)),
+            Text(
+              note,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: borderColor.withOpacity(0.8),
               ),
-              const SizedBox(height: 8),
-              Text(time, style: GoogleFonts.poppins(fontSize: 16)),
-              Text(
-                note,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: borderColor.withOpacity(0.8),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

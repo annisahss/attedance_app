@@ -1,10 +1,11 @@
-import 'package:attedance_app/services/check_out_service.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:attedance_app/services/check_out_service.dart';
+import 'package:attedance_app/theme/app_colors.dart';
 
 class CheckOutPage extends StatefulWidget {
   const CheckOutPage({Key? key}) : super(key: key);
@@ -77,7 +78,6 @@ class _CheckOutPageState extends State<CheckOutPage> {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-
       if (!mounted) return;
       setState(() => _currentPosition = position);
 
@@ -89,7 +89,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
       setState(() {
         _currentAddress =
-            "${placemark.street}, ${placemark.locality}, ${placemark.country}";
+            "${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}, ${placemark.country}";
       });
 
       _markers.clear();
@@ -217,6 +217,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           Column(
@@ -226,9 +227,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
                 child:
                     _currentPosition != null
                         ? GoogleMap(
-                          onMapCreated: (controller) {
-                            _mapController = controller;
-                          },
+                          onMapCreated:
+                              (controller) => _mapController = controller,
                           initialCameraPosition: CameraPosition(
                             target: LatLng(
                               _currentPosition!.latitude,
@@ -242,113 +242,83 @@ class _CheckOutPageState extends State<CheckOutPage> {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 35,
+                            backgroundImage: AssetImage(_userAvatar),
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CircleAvatar(
-                                radius: 35,
-                                backgroundImage: AssetImage(_userAvatar),
-                              ),
-                              const SizedBox(width: 15),
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    color: Colors.white,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.2),
-                                        spreadRadius: 2,
-                                        blurRadius: 5,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _userName,
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 5),
-                                      Text(
-                                        _currentAddress,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
-                                        ),
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _userName,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-
-                        GestureDetector(
-                          onTap:
-                              (_isCheckingOut || _hasCheckedOut)
-                                  ? null
-                                  : _handleCheckOut,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color:
-                                  _isCheckingOut || _hasCheckedOut
-                                      ? Colors.grey
-                                      : Colors.blue,
+                                const SizedBox(height: 5),
+                                Text(
+                                  _currentAddress,
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                            child: Center(
-                              child:
-                                  _isCheckingOut
-                                      ? const CircularProgressIndicator(
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                      GestureDetector(
+                        onTap:
+                            (_isCheckingOut || _hasCheckedOut)
+                                ? null
+                                : _handleCheckOut,
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color:
+                                _isCheckingOut || _hasCheckedOut
+                                    ? Colors.grey
+                                    : AppColors.primary,
+                          ),
+                          child: Center(
+                            child:
+                                _isCheckingOut
+                                    ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                    : Text(
+                                      _hasCheckedOut
+                                          ? 'Checked Out'
+                                          : 'Check Out',
+                                      style: const TextStyle(
                                         color: Colors.white,
-                                      )
-                                      : Text(
-                                        _hasCheckedOut
-                                            ? 'Checked Out'
-                                            : 'Check Out',
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                            ),
+                                    ),
                           ),
                         ),
-                        const SizedBox(height: 15),
-                        Text(
-                          _hasCheckedOut
-                              ? 'Checked out at $_checkOutTime'
-                              : 'Tekan tombol untuk Check Out',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 15),
+                      Text(
+                        _hasCheckedOut
+                            ? 'Checked out at $_checkOutTime'
+                            : 'Tekan tombol untuk Check Out',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -358,10 +328,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
             top: 10,
             left: 10,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+              onPressed: () => Navigator.pop(context),
             ),
           ),
         ],

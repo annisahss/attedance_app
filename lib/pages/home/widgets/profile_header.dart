@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:attedance_app/theme/app_colors.dart'; // Tambahkan AppColors
 
 class ProfileHeader extends StatelessWidget {
   final String logoPath;
@@ -23,9 +24,9 @@ class ProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.blue,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: AppColors.primary, // Ganti dari Colors.blue
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
         ),
