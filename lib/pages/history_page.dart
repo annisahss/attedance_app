@@ -96,42 +96,13 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  Future<void> deleteAbsen(int id) async {
-    final token = await SharedPrefService.getToken();
-    if (token == null) return;
-
-    final url = '${Endpoint.baseUrl}/api/absen/$id';
-    print('URL: $url');
-
+  String formatTime(String? timeString) {
+    if (timeString == null || timeString.isEmpty) return '-';
     try {
-      final response = await http.delete(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      );
-
-      final data = jsonDecode(response.body);
-      print('Response: ${response.body}');
-      if (response.statusCode == 200) {
-        setState(() {
-          historyList.removeWhere((item) => item['id'] == id);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Berhasil menghapus absen'),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Gagal menghapus absen')),
-        );
-      }
+      final dateTime = DateTime.parse(timeString);
+      return DateFormat('hh:mm:ss a').format(dateTime);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal menghapus absen: $e')));
+      return '-';
     }
   }
 
@@ -144,10 +115,10 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text('Riwayat Absensi'),
+        title: const Text('Attedance Reports'),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.date_range),
@@ -159,7 +130,7 @@ class _HistoryPageState extends State<HistoryPage> {
           isLoading && historyList.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : historyList.isEmpty
-              ? const Center(child: Text('Tidak ada data absensi.'))
+              ? const Center(child: Text('There is no data attendance.'))
               : ListView.builder(
                 controller: scrollController,
                 itemCount: historyList.length + (hasMore ? 1 : 0),
@@ -170,69 +141,26 @@ class _HistoryPageState extends State<HistoryPage> {
 
                   final item = historyList[index];
                   return Card(
-                    color: AppColors.card,
                     margin: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
                     ),
+                    elevation: 3,
                     child: ListTile(
                       title: Text(
                         '${item['status'].toUpperCase()} - ${item['check_in_address']}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (item['check_in'] != null)
-                            Text(
-                              'Masuk: ${item['check_in']}',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
+                            Text('Masuk: ${formatTime(item['check_in'])}'),
                           if (item['check_out'] != null)
-                            Text(
-                              'Keluar: ${item['check_out']}',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
+                            Text('Keluar: ${formatTime(item['check_out'])}'),
                           if (item['alasan_izin'] != null)
-                            Text(
-                              'Alasan: ${item['alasan_izin']}',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
+                            Text('Alasan: ${item['alasan_izin']}'),
                         ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder:
-                                (context) => AlertDialog(
-                                  title: const Text('Hapus Absen'),
-                                  content: const Text(
-                                    'Yakin ingin menghapus data ini?',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed:
-                                          () => Navigator.pop(context, false),
-                                      child: const Text('Batal'),
-                                    ),
-                                    TextButton(
-                                      onPressed:
-                                          () => Navigator.pop(context, true),
-                                      child: const Text('Hapus'),
-                                    ),
-                                  ],
-                                ),
-                          );
-
-                          if (confirm == true) {
-                            deleteAbsen(item['id']);
-                          }
-                        },
                       ),
                     ),
                   );

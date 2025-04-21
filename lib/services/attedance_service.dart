@@ -17,8 +17,9 @@ class AttendanceService {
     String? alasanIzin,
   }) async {
     final token = await SharedPrefService.getToken();
-    if (token == null)
+    if (token == null) {
       throw Exception('Token tidak ditemukan. Silakan login ulang.');
+    }
 
     final url = Uri.parse('$_baseUrl${Endpoint.checkIn}');
     final headers = {
@@ -55,8 +56,9 @@ class AttendanceService {
     required String address,
   }) async {
     final token = await SharedPrefService.getToken();
-    if (token == null)
+    if (token == null) {
       throw Exception('Token tidak ditemukan. Silakan login ulang.');
+    }
 
     final url = Uri.parse('$_baseUrl${Endpoint.checkOut}');
     final headers = {

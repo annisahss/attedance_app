@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:attedance_app/services/check_in_service.dart';
 import 'package:attedance_app/theme/app_colors.dart';
+import 'package:attedance_app/pages/home/home_page.dart';
 
 class CheckInPage extends StatefulWidget {
   const CheckInPage({super.key});
@@ -18,13 +19,17 @@ class _CheckInPageState extends State<CheckInPage> {
   Position? _currentPosition;
   String _currentAddress = 'Loading address...';
   GoogleMapController? _mapController;
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   bool _isCheckingIn = false;
   String _checkInTime = '';
   String _userName = 'User';
   String _userAvatar = 'assets/images/avatar.jpeg';
   String? _selectedAttendanceType;
   final TextEditingController _reasonController = TextEditingController();
+
+  final double _allowedDistance = 40;
+  final double _officeLat = -6.210881;
+  final double _officeLng = 106.812942;
 
   @override
   void initState() {
@@ -38,8 +43,7 @@ class _CheckInPageState extends State<CheckInPage> {
     if (!mounted) return;
     setState(() {
       _userName = prefs.getString('userName') ?? 'User';
-      _userAvatar =
-          prefs.getString('userAvatar') ?? 'assets/images/avatar.jpeg';
+      _userAvatar = prefs.getString('userAvatar') ?? 'assets/images/avatar.jpg';
     });
   }
 
@@ -89,7 +93,9 @@ class _CheckInPageState extends State<CheckInPage> {
 
       setState(() {
         _currentAddress =
-            "${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}, ${placemark.country}";
+            "${placemark.street}, ${placemark.subLocality}, "
+            "${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}, "
+            "${placemark.country}";
       });
 
       _markers.clear();
@@ -117,6 +123,22 @@ class _CheckInPageState extends State<CheckInPage> {
 
   Future<void> _handleCheckIn() async {
     if (_isCheckingIn || _currentPosition == null) return;
+
+    double distance = Geolocator.distanceBetween(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+      _officeLat,
+      _officeLng,
+    );
+
+    if (distance > _allowedDistance) {
+      _showErrorDialog(
+        'Too Far',
+        'You are more than 40 meters away from the allowed location.',
+      );
+      return;
+    }
+
     setState(() => _isCheckingIn = true);
 
     try {
@@ -124,39 +146,38 @@ class _CheckInPageState extends State<CheckInPage> {
         lat: _currentPosition!.latitude,
         lng: _currentPosition!.longitude,
         address: _currentAddress,
-        status: _selectedAttendanceType == 'Izin' ? 'izin' : 'masuk',
+        status: _selectedAttendanceType == 'Leave' ? 'izin' : 'masuk',
         alasanIzin:
             _reasonController.text.isNotEmpty ? _reasonController.text : null,
       );
 
       setState(() => _isCheckingIn = false);
 
-      if (response.data != null && response.data!.checkIn != null) {
-        final formattedTime = DateFormat(
-          'hh:mm a',
-        ).format(response.data!.checkIn!);
-        setState(() => _checkInTime = formattedTime);
+      final now = DateTime.now();
+      final formattedTime = DateFormat('hh:mm:ss a').format(now);
+      setState(() => _checkInTime = formattedTime);
 
-        showDialog(
-          context: context,
-          builder:
-              (context) => AlertDialog(
-                title: const Text('Check-In Successful'),
-                content: Text('Time: $formattedTime'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('OK'),
-                  ),
-                ],
-              ),
-        );
-      } else {
-        _showErrorDialog(
-          'Already Checked-In',
-          response.message ?? 'Already checked-in today.',
-        );
-      }
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Check-In Successful'),
+              content: Text('Time: $formattedTime'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomePage()),
+                    );
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+      );
     } catch (e) {
       setState(() => _isCheckingIn = false);
       _showErrorDialog('Check-In Failed', e.toString());
@@ -245,13 +266,19 @@ class _CheckInPageState extends State<CheckInPage> {
                       ),
                       const SizedBox(height: 20),
                       DropdownButtonFormField<String>(
-                        value: _selectedAttendanceType,
-                        onChanged:
-                            (String? newValue) => setState(
-                              () => _selectedAttendanceType = newValue,
-                            ),
+                        value:
+                            [
+                                  'Attendance',
+                                  'Leave',
+                                ].contains(_selectedAttendanceType)
+                                ? _selectedAttendanceType
+                                : null,
+                        hint: const Text('Select Attendance Type'),
+                        onChanged: (String? newValue) {
+                          setState(() => _selectedAttendanceType = newValue);
+                        },
                         items:
-                            ['Masuk', 'Izin']
+                            ['Attendance', 'Leave']
                                 .map(
                                   (value) => DropdownMenuItem<String>(
                                     value: value,
@@ -265,7 +292,7 @@ class _CheckInPageState extends State<CheckInPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      if (_selectedAttendanceType == 'Izin')
+                      if (_selectedAttendanceType == 'Leave')
                         TextField(
                           controller: _reasonController,
                           decoration: const InputDecoration(
@@ -279,8 +306,8 @@ class _CheckInPageState extends State<CheckInPage> {
                         child: GestureDetector(
                           onTap: _isCheckingIn ? null : _handleCheckIn,
                           child: Container(
-                            width: 160,
-                            height: 160,
+                            width: 120,
+                            height: 120,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color:
@@ -295,10 +322,10 @@ class _CheckInPageState extends State<CheckInPage> {
                                         color: Colors.white,
                                       )
                                       : Text(
-                                        _selectedAttendanceType == 'Izin'
-                                            ? 'Submit Izin'
-                                            : 'Check In',
-                                        style: TextStyle(
+                                        _selectedAttendanceType == 'Leave'
+                                            ? 'Submit Leave'
+                                            : 'Clock In',
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -312,7 +339,7 @@ class _CheckInPageState extends State<CheckInPage> {
                       if (_checkInTime.isNotEmpty)
                         Center(
                           child: Text(
-                            'Checked in at $_checkInTime',
+                            'Clocked in at $_checkInTime',
                             style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
@@ -323,11 +350,32 @@ class _CheckInPageState extends State<CheckInPage> {
             ],
           ),
           Positioned(
-            top: 10,
-            left: 10,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-              onPressed: () => Navigator.pop(context),
+            top: 40,
+            left: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: AppColors.primary,
+                ),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HomePage()),
+                  );
+                },
+              ),
             ),
           ),
         ],

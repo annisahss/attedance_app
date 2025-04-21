@@ -11,8 +11,9 @@ class ProfileService {
   /// Ambil data profil user
   static Future<ProfileResponse?> fetchProfile() async {
     final token = await SharedPrefService.getToken();
-    if (token == null)
+    if (token == null) {
       throw Exception('Token tidak ditemukan. Silakan login ulang.');
+    }
 
     final response = await http.get(
       Uri.parse('$baseUrl${Endpoint.profile}'),
@@ -38,8 +39,9 @@ class ProfileService {
   /// Update profil user (hanya `name`)
   static Future<bool> updateProfile({required String name}) async {
     final token = await SharedPrefService.getToken();
-    if (token == null)
+    if (token == null) {
       throw Exception('Token tidak ditemukan. Silakan login ulang.');
+    }
 
     final response = await http.put(
       Uri.parse('$baseUrl${Endpoint.profile}'),

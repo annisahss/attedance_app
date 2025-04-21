@@ -43,8 +43,8 @@ class CheckInService {
     if (response.statusCode == 200) {
       return checkInResponseFromJson(response.body);
     } else {
-      final responseData = jsonDecode(response.body);
-      throw Exception('Gagal melakukan check-in: ${responseData['message']}');
+      // Tidak peduli response apapun dari server, kasih pesan yang lebih ramah
+      throw Exception('Anda sudah melakukan absen hari ini.');
     }
   }
 }

@@ -1,10 +1,12 @@
 import 'package:attedance_app/pages/home/home_page.dart';
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:attedance_app/pages/auth/register_page.dart';
 import 'package:attedance_app/services/auth_service.dart';
+import 'package:attedance_app/services/profile_service.dart';
 import 'package:attedance_app/utils/validator.dart';
 import 'package:attedance_app/theme/app_colors.dart';
-import 'register_page.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -25,23 +27,34 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!Validator.email(email) || !Validator.password(password)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please complete all fields correctly.')),
+        const SnackBar(content: Text('Please complete all fields correctly.')),
       );
       return;
     }
 
     setState(() => _isLoading = true);
+
     final api = AuthService();
     final result = await api.login(email, password);
-    setState(() => _isLoading = false);
 
     if (result.data != null) {
+      // Fetch profile
+      final profile = await ProfileService.fetchProfile();
+      final prefs = await SharedPreferences.getInstance();
+
+      if (profile != null && profile.data != null) {
+        await prefs.setString('userName', profile.data!.name ?? 'User');
+      }
+
+      setState(() => _isLoading = false);
+
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } else {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(result.message ?? 'Login failed')));
@@ -76,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Email Address',
                   border: OutlineInputBorder(),
                 ),
@@ -87,17 +100,18 @@ class _LoginPageState extends State<LoginPage> {
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_off
                           : Icons.visibility,
                     ),
-                    onPressed:
-                        () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                   ),
                 ),
               ),
@@ -131,13 +145,12 @@ class _LoginPageState extends State<LoginPage> {
                     style: GoogleFonts.poppins(color: AppColors.textSecondary),
                   ),
                   GestureDetector(
-                    onTap:
-                        () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterPage(),
-                          ),
-                        ),
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegisterPage()),
+                      );
+                    },
                     child: Text(
                       "Register",
                       style: GoogleFonts.poppins(

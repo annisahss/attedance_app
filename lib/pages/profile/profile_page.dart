@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:attedance_app/pages/history_page.dart';
-import 'package:attedance_app/pages/home/profile/edit_profile.dart';
+import 'package:attedance_app/pages/profile/edit_profile_page.dart';
 import 'package:attedance_app/pages/home/home_page.dart';
 import 'package:attedance_app/services/profile_service.dart';
 import 'package:attedance_app/theme/app_colors.dart';
@@ -62,7 +62,7 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
             CircleAvatar(
               radius: 50,
-              backgroundImage: const AssetImage('assets/images/avatar.jpeg'),
+              backgroundImage: const AssetImage('assets/images/avatar.jpg'),
               backgroundColor: AppColors.card,
             ),
             const SizedBox(height: 20),
@@ -84,7 +84,7 @@ class _ProfilePageState extends State<ProfilePage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const EditProfile()),
+                  MaterialPageRoute(builder: (_) => const EditProfilePage()),
                 );
               },
               style: ElevatedButton.styleFrom(

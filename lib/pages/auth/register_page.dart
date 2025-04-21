@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:attedance_app/pages/auth/login_page.dart';
 import 'package:attedance_app/services/auth_service.dart';
 import 'package:attedance_app/utils/validator.dart';
 import 'package:attedance_app/theme/app_colors.dart';
-import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -27,8 +27,9 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!Validator.name(name) ||
         !Validator.email(email) ||
         !Validator.password(password)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please complete all fields correctly.')),
+      _showErrorDialog(
+        'Invalid Input',
+        'Please complete all fields correctly.',
       );
       return;
     }
@@ -40,15 +41,53 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (result.errors == null && result.message != null) {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+      _showSuccessDialog();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message ?? 'Registration failed')),
+      _showErrorDialog(
+        'Registration Failed',
+        result.message ?? 'An error occurred during registration.',
       );
     }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Registration Successful'),
+            content: const Text('Your account has been created. Please login.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
   }
 
   @override
@@ -78,7 +117,7 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 30),
               TextField(
                 controller: nameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Full Name',
                   border: OutlineInputBorder(),
                 ),
@@ -87,7 +126,7 @@ class _RegisterPageState extends State<RegisterPage> {
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Email Address',
                   border: OutlineInputBorder(),
                 ),
@@ -98,17 +137,18 @@ class _RegisterPageState extends State<RegisterPage> {
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_off
                           : Icons.visibility,
                     ),
-                    onPressed:
-                        () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                   ),
                 ),
               ),
@@ -132,30 +172,6 @@ class _RegisterPageState extends State<RegisterPage> {
                             style: GoogleFonts.poppins(fontSize: 16),
                           ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Already have an account? ",
-                    style: GoogleFonts.poppins(color: AppColors.textSecondary),
-                  ),
-                  GestureDetector(
-                    onTap:
-                        () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LoginPage()),
-                        ),
-                    child: Text(
-                      "Login",
-                      style: GoogleFonts.poppins(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),

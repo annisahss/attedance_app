@@ -10,8 +10,9 @@ class HistoryService {
     required String endDate,
   }) async {
     final token = await SharedPrefService.getToken();
-    if (token == null)
+    if (token == null) {
       throw Exception('Token tidak ditemukan. Silakan login ulang.');
+    }
 
     final url = Uri.parse(
       '${Endpoint.baseUrl}/api/absen/history?start=$startDate&end=$endDate',
