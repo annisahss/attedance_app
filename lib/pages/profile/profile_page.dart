@@ -5,7 +5,7 @@ import 'package:attedance_app/pages/profile/edit_profile_page.dart';
 import 'package:attedance_app/pages/home/home_page.dart';
 import 'package:attedance_app/services/profile_service.dart';
 import 'package:attedance_app/theme/app_colors.dart';
-import 'package:flutter/services.dart';
+import 'package:attedance_app/pages/auth/login_page.dart'; // <-- Tambahkan ini!
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -38,7 +38,12 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    SystemNavigator.pop();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
   }
 
   @override

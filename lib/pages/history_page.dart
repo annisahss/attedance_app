@@ -96,12 +96,20 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
-  String formatTime(String? timeString) {
-    if (timeString == null || timeString.isEmpty) return '-';
+  String formatDate(String date) {
     try {
-      final dateTime = DateTime.parse(timeString);
-      return DateFormat('hh:mm:ss a').format(dateTime);
-    } catch (e) {
+      final dt = DateTime.parse(date);
+      return DateFormat('EEEE, dd MMMM yyyy').format(dt);
+    } catch (_) {
+      return '-';
+    }
+  }
+
+  String formatTime(String? time) {
+    try {
+      if (time == null || time.isEmpty) return '-';
+      return DateFormat('hh:mm:ss a').format(DateTime.parse(time));
+    } catch (_) {
       return '-';
     }
   }
@@ -112,17 +120,74 @@ class _HistoryPageState extends State<HistoryPage> {
     super.dispose();
   }
 
+  Widget buildHistoryCard(Map item) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 4,
+            color: Color(0x11000000),
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            formatDate(item['check_in'] ?? item['check_out'] ?? ''),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            item['status'].toUpperCase(),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color:
+                  item['status'] == 'izin'
+                      ? AppColors.warning
+                      : AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (item['check_in'] != null)
+            Text("Clock In : ${formatTime(item['check_in'])}"),
+          if (item['check_out'] != null)
+            Text("Clock Out : ${formatTime(item['check_out'])}"),
+          if (item['alasan_izin'] != null)
+            Text("Reason : ${item['alasan_izin']}"),
+          const SizedBox(height: 4),
+          Text(
+            item['check_in_address'] ?? 'No address available',
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        title: const Text("Attendance History"),
         backgroundColor: AppColors.primary,
-        title: const Text('Attedance Reports'),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.date_range),
             onPressed: pickDateRange,
+            icon: const Icon(Icons.filter_alt_outlined),
           ),
         ],
       ),
@@ -130,40 +195,20 @@ class _HistoryPageState extends State<HistoryPage> {
           isLoading && historyList.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : historyList.isEmpty
-              ? const Center(child: Text('There is no data attendance.'))
+              ? const Center(child: Text("No attendance records found."))
               : ListView.builder(
                 controller: scrollController,
                 itemCount: historyList.length + (hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == historyList.length) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
                   }
 
                   final item = historyList[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    elevation: 3,
-                    child: ListTile(
-                      title: Text(
-                        '${item['status'].toUpperCase()} - ${item['check_in_address']}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (item['check_in'] != null)
-                            Text('Masuk: ${formatTime(item['check_in'])}'),
-                          if (item['check_out'] != null)
-                            Text('Keluar: ${formatTime(item['check_out'])}'),
-                          if (item['alasan_izin'] != null)
-                            Text('Alasan: ${item['alasan_izin']}'),
-                        ],
-                      ),
-                    ),
-                  );
+                  return buildHistoryCard(item);
                 },
               ),
     );

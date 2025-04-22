@@ -23,7 +23,7 @@ class _CheckInPageState extends State<CheckInPage> {
   bool _isCheckingIn = false;
   String _checkInTime = '';
   String _userName = 'User';
-  String _userAvatar = 'assets/images/avatar.jpeg';
+  String _userAvatar = 'assets/images/avatar.jpg';
   String? _selectedAttendanceType;
   final TextEditingController _reasonController = TextEditingController();
 

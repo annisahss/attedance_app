@@ -41,12 +41,6 @@ class CustomMap extends StatelessWidget {
               const Icon(Icons.location_on, color: Colors.red),
               const SizedBox(width: 8),
               Expanded(child: Text(address, overflow: TextOverflow.ellipsis)),
-              IconButton(
-                icon: const Icon(Icons.star_border),
-                onPressed: () {
-                  // save favorite location logic
-                },
-              ),
             ],
           ),
         ),
