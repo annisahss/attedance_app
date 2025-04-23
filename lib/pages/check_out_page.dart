@@ -25,9 +25,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
   String _userName = 'User';
   String _userAvatar = 'assets/images/avatar.jpg';
 
-  final double _allowedDistance = 40;
-  final double _officeLat = -6.210881;
-  final double _officeLng = 106.812942;
+  final double _allowedDistance = 100;
+  final double _officeLat = -6.21085;
+  final double _officeLng = 106.81301;
 
   @override
   void initState() {

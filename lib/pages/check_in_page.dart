@@ -27,9 +27,9 @@ class _CheckInPageState extends State<CheckInPage> {
   String? _selectedAttendanceType;
   final TextEditingController _reasonController = TextEditingController();
 
-  final double _allowedDistance = 40;
-  final double _officeLat = -6.210881;
-  final double _officeLng = 106.812942;
+  final double _allowedDistance = 100;
+  final double _officeLat = -6.21085;
+  final double _officeLng = 106.81301;
 
   @override
   void initState() {
